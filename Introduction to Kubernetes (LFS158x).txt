@@ -1,0 +1,708 @@
+*** INTRODUCTION TO KUBERNETES (LFS158) ***
+*******************************************
+
+*** FROM MONOLITH TO MICROSERVICES ***
+>>modern microservice
+Microservices can be deployed individually on separate servers provisioned
+Microservices-based architecture is aligned with Event-driven Architecture and Service-Oriented Architecture (SOA) principles
+Although the distributed nature of microservices adds complexity to the architecture, one of the greatest benefits of microservices is scalability
+
+>>refactoring
+monolith to microservice refactoring
+The refactoring phase slowly transforms the monolith into a cloud-native application which takes full advantage of cloud features, 
+by coding in new programming languages and applying modern architectural patterns.
+
+
+*** KUBERNETES ***
+Kubernetes is an open-source system for automating deployment, scaling, and management of containerized applications
+it has apache 2 licence and written at Go language
+
+>>Kubernetes Features
+Automatic bin packing
+Designed for extensibility
+Self-healing
+Horizontal scaling
+Service discovery and load balancing
+portability
+
+>>Cloud Native Computing Foundation (CNCF)
+CNCF aims to accelerate the adoption of containers, microservices, and cloud-native applications.
+
+
+*** KUBERNETES ARCHITECTURE  ***
+The control plane node provides a running environment for the control plane agents responsible for managing the state of a Kubernetes cluster, and it is the brain behind all operations inside the cluster.
+
+>>Control Plane Node Components
+API server: All the administrative tasks are coordinated by the kube-apiserver
+scheduler: The role of the kube-scheduler is to assign new workload objects, such as pods encapsulating containers, to nodes - typically worker nodes.
+controller managers: The kube-controller-manager runs controllers or operators responsible to act when nodes become unavailable, to ensure container pod counts are as expected, to create endpoints, service accounts, and API access tokens.
+key-value data store
+
+A worker node provides a running environment for client applications. These applications are microservices running as application containers.
+In Kubernetes the application containers are encapsulated in Pods,A Pod is the smallest scheduling work unit in Kubernetes 
+
+A worker node has the following components: container runtime, node agent - kubelet, kubelet - CRI shims, proxy - kube-proxy, add-ons
+-Container runtime
+CRI-O
+A lightweight container runtime for Kubernetes, supporting quay.io and Docker Hub image registries.
+containerd
+A simple, robust, and portable container runtime.
+Docker Engine
+A popular and complex container platform which uses containerd as a container runtime.
+Mirantis Container Runtime
+-kuvbelet
+The kubelet is an agent running on each node, control plane and workers, and communicates with the control plane. 
+It receives Pod definitions, primarily from the API Server, and interacts with the container runtime on the node to run containers associated with the Pod.
+-kubelet - CRI shims
+
+>>Networking Challenges
+Container-to-Container communication inside Pods
+Pod-to-Pod communication on the same node and across cluster nodes
+Service-to-Pod communication within the same namespace and across cluster namespaces
+External-to-Service communication for clients to access applications in a cluster
+All these networking challenges must be addressed before deploying a Kubernetes cluster.
+
+>>Kubernetes Configuration
+All-in-One Single-Node Installation
+Single-Control Plane and Multi-Worker Installation
+Single-Control Plane with Single-Node etcd, and Multi-Worker Installation
+Multi-Control Plane with Multi-Node etcd, and Multi-Worker Installation
+Multi-Control Plane and Multi-Worker Installation
+
+>Local Learning Clusters
+minicube, kind, docker, microk8s,k3s
+>Production Clusters with Deployment Tools
+kubeadm, kubespray, kops
+
+>Production Clusters from Certified Solutions Providers
+alibaba cloud, ibm, amazon ws, google cloud, OPENSHIFT, oracle
+
+>>MINIKUBE: INSTALLING LOCAL KUBERNETES CLUSTERS
+PS C:\WINDOWS\system32> systeminfo
+
+>> Advanced Minikube Features
+
+$ minikube start --kubernetes-version=v1.23.3 \
+  --driver=podman --profile minipod
+$ minikube start --nodes=2 --kubernetes-version=v1.24.4 \
+  --driver=docker --profile doubledocker
+
+$ minikube profile 	command allows us to view the status of all our clusters in a table formatted output.
+$ minikube stop -p minibox
+$ minikube start -p minibox
+
+kubectl allows us to manage local Kubernetes clusters like the Minikube cluster, or remote clusters deployed in the cloud.
+$ kubectl config view
+$ kubectl cluster-info
+$ minikube kubectl -- get nodes
+
+$ minikube addons enable metrics-server
+$ minikube addons enable dashboard
+$ minikube addons list
+$ minikube dashboard 
+$ minikube dashboard --url
+
+
+*** Kubernetes Building Blocks ***
+>>Nodes
+Nodes are virtual identities assigned by Kubernetes to the systems part of the cluster - whether Virtual Machines, bare-metal, Containers, etc.
+Each node is managed with the help of two Kubernetes node agents - kubelet and kube-proxy, while it also hosts a container runtime.
+Minikube is using the default kubeadm bootstrapping tool, to initialize the control plane node during the init phase and grow the cluster by adding worker or control plane nodes with the join phase.
+The control plane nodes run the control plane agents, such as the API Server, Scheduler, Controller Managers, and etcd in addition to the kubelet and kube-proxy node agents, the container runtime, and add-ons for container networking, monitoring, logging, DNS, etc.
+Worker nodes run the kubelet and kube-proxy node agents, the container runtime, and add-ons for container networking, monitoring, logging, DNS, etc.
+
+>>Namespaces
+f multiple users and teams use the same Kubernetes cluster we can partition the cluster into virtual sub-clusters using Namespaces. 
+$ kubectl get namespaces
+$ kubectl create namespace new-namespace-name 
+
+>>Pods
+A Pod is the smallest Kubernetes workload object.
+Are scheduled together on the same host with the Pod.
+Share the same network namespace, meaning that they share a single IP address originally assigned to the Pod.
+Have access to mount the same external storage (volumes) and other common dependencies.
+
+>>labels
+Labels are key-value pairs attached to Kubernetes objects (e.g. Pods, ReplicaSets, Nodes, Namespaces, Persistent Volumes). 
+Controllers, or operators, and Services, use label selectors to select a subset of objects. Kubernetes supports two types of Selectors:
+Equality-Based Selectors allow filtering of objects based on Label keys and values. Matching is achieved using the =, == (equals, used interchangeably), or != (not equals) operators. For example, with env==dev or env=dev we are selecting the objects where the env Label key is set to value dev. 
+Set-Based Selectors
+Set-Based Selectors allow filtering of objects based on a set of values. We can use in, notin operators for Label values, and exist/does not exist operators for Label keys.
+
+>>ReplicaSets
+A ReplicaSet is, in part, the next-generation ReplicationController, as it implements the replication and self-healing aspects of the ReplicationController. ReplicaSets support both equality- and set-based Selectors, whereas ReplicationControllers only support equality-based Selectors. 
+ReplicaSets can be used independently as Pod controllers but they only offer a limited set of features. A set of complementary features are provided by Deployments, the recommended controllers for the orchestration of Pods.
+
+>>Deployments
+Deployment objects provide declarative updates to Pods and ReplicaSets.
+It allows for seamless application updates and "rollbacks", known as the default RollingUpdate strategy, through rollouts and rollbacks, and it directly manages its ReplicaSets for application scaling. 
+The "apiVersion" is specifies the API endpoint on the API server which we want to connect to; it must match an existing version for the object type defined. 
+"kind", specifying the object type - in our case it is Deployment, but it can be Pod, ReplicaSet, Namespace, Service, etc.
+"metadata", holds the object's basic information, such as name, annotations, labels, namespaces, etc.
+"spec" marks the beginning of the block defining the desired state of the Deployment object.
+"status" field to the object and populates it with all necessary status fields.
+"rolling update " is triggered when we update specific properties of the Pod Template for a deployment. 
+
+>>DaemonSets
+DaemonSets are operators designed to manage node agents.
+it resemble replicasets and deployments operators.
+DaemonSet operators are commonly used in cases when we need to collect monitoring data from all Nodes, or to run a storage, networking, or proxy daemons on all Nodes, to ensure that we have a specific type of Pod running on all Nodes at all times. 
+
+
+*** AUTHENTICATION, AUTHORIZATION, ADMISSION CONTROL ***
+Authentication: Authenticate a user based on credentials provided as part of API requests.
+Authorization: Authorizes the API requests submitted by the authenticated user.
+Admission Control: Software modules that validate and/or modify user requests.
+
+Kubernetes supports two kinds of users:
+Normal Users
+They are managed outside of the Kubernetes cluster via independent services like User/Client Certificates, a file listing usernames/passwords, Google accounts, etc.
+Service Accounts
+Service Accounts allow in-cluster processes to communicate with the API server to perform various operations.
+
+$ minikube start
+$ kubectl config view
+$ kubectl create namespace lfs158
+	Create the rbac directory and cd into it:
+$ mkdir rbac
+$ cd rbac/
+~/rbac$ sudo useradd -s /bin/bash bob
+~/rbac$ sudo passwd bob
+	Create a private key for the new user bob with the openssl tool, then create a certificate signing request for bob with the same openssl tool:
+~/rbac$ openssl genrsa -out bob.key 2048
+~/rbac$ openssl req -new -key bob.key \
+  -out bob.csr -subj "/CN=bob/O=learner"
+	Create a YAML definition manifest for a certificate signing request object, and save it with a blank value for the request field: 
+~/rbac$ vim signing-request.yaml
+
+
+Admission controllers are used to specify granular access control policies, which include allowing privileged containers, checking on resource quota, etc
+To use admission controls, we must start the Kubernetes API server with the
+--enable-admission-plugins=NamespaceLifecycle,ResourceQuota,PodSecurity,DefaultStorageClass
+
+
+*** SERVICES ***
+Service, which logically groups Pods and defines a policy to access them. This grouping is achieved via Labels and Selectors.
+Labels and Selectors use a key-value pair format.
+-  app is the Label key, frontend and db are Label values for different Pods.
+Service receives an IP address routable only inside the cluster, known as ClusterIP.
+
+kube-proxy is responsible for implementing the Service configuration on behalf of an administrator or developer, in order to enable traffic routing to an exposed application running in Pods.
+
+>The two options are Cluster and Local: (kube-proxy)
+The Cluster option allows kube-proxy to target all ready Endpoints of the Service in the load-balancing process.
+The Local option, however, isolates the load-balancing process to only include the Endpoints of the Service located on the same node as the requester Pod
+
+>> Service Discovery
+Kubernetes supports two methods for discovering Services.
+>Environment variables
+if we have an active Service called redis-master, which exposes port 6379, and its ClusterIP is 172.17.0.6, then, on a newly created Pod, we can see the following environment variables:
+REDIS_MASTER_SERVICE_HOST=172.17.0.6
+REDIS_MASTER_SERVICE_PORT=6379
+REDIS_MASTER_PORT=tcp://172.17.0.6:6379
+REDIS_MASTER_PORT_6379_TCP=tcp://172.17.0.6:6379
+REDIS_MASTER_PORT_6379_TCP_PROTO=tcp
+REDIS_MASTER_PORT_6379_TCP_PORT=6379
+REDIS_MASTER_PORT_6379_TCP_ADDR=172.17.0.6
+>DNS
+This is the most common and highly recommended solution.
+
+>>servicetype
+Access scope is decided by ServiceType property, defined when creating the Service. 
+
+ClusterIP is the default ServiceType. A Service receives a Virtual IP address, known as its ClusterIP. 
+This Virtual IP address is used for communicating with the Service and is accessible only from within the cluster. 
+
+With the NodePort ServiceType, in addition to a ClusterIP, a high-port, dynamically picked from the default range 30000-32767, is mapped to the respective Service, from all the worker nodes.
+The NodePort ServiceType is useful when we want to make our Services accessible from the external world.
+
+LoadBalancer ServiceType will only work if the underlying infrastructure supports the automatic creation of Load Balancers and have the respective support in Kubernetes, as is the case with the Google Cloud Platform and AWS. 
+
+ExternalIP address if it can route to one or more of the worker nodes.
+This type of service requires an external cloud provider such as Google Cloud Platform or AWS and a Load Balancer configured on the cloud provider's infrastructure.
+
+
+*** DEPLOYING A STAND-ALONE APPLICATION ***
+
+Let's learn how to deploy an nginx webserver using the nginx Docker container image.
+$ minikube start
+$ minikube status
+	From the dashboard, click on the "+" sign at the top right corner of the Dashboard.
+	Click on the Create from form tab and provide the following application details:
+	The application name is web-dash.
+	The Docker image to use is nginx.
+	The replica count, or the number of Pods, is 1.
+	Service is External, Port 8080, Target port 80, Protocol TCP.
+*If we click on Show Advanced Options, we can specify options such as Labels, Namespace, etc. By default, the app Label is set to the application name
+Deploy button, we trigger the deployment. As expected, the Deployment web-dash will create a ReplicaSet (web-dash-74d8bd488f), which will eventually create 1 Pod (web-dash-74d8bd488f-dwbzz). 
+
+Once we create the "web-dash" Deployment, we can use the resource navigation panel from the left side of the Dashboard
+We can list all the Deployments in the default Namespace using the kubectl get deployments command:
+$ kubectl get deployments
+$ kubectl get replicasets
+$ kubectl get pods
+
+$ kubectl describe pod web-dash-74d8bd488f-dwbzz		Pod's description
+kubectl describe command displays many more details of a Pod.
+
+$ kubectl get pods -L k8s-app,label2		-L option to the kubectl get pods command, we add extra columns in the output to list Pods
+$ kubectl get pods -l k8s-app=web-dash		use the -l option, we are selecting all the Pods that have the k8s-app Label key set to value web-dash
+$ kubectl get pods -l k8s-app=webserver
+
+To deploy an application using the CLI, let's first delete the Deployment we created earlier.
+$ kubectl delete deployments web-dash
+$ kubectl get replicasets
+$ kubectl get pods
+Create a YAML definition manifest for a Deployment controller. Let's create the webserver.yaml
+$ kubectl create -f webserver.yaml		-f option with the kubectl create command, we can pass a YAML file as an object's specification, or a URL to a configuration file from the web.
+$  kubectl get replicasets
+$ kubectl get pods
+$  kubectl create deployment webserver --image=nginx:alpine --replicas=3 --port=80
+$ kubectl create -f webserver-svc.yaml
+A more direct method of creating a Service is by exposing the previously created Deployment
+$ kubectl expose deployment webserver --name=web-service --type=NodePort
+List the Services:
+$ kubectl get services
+$ kubectl describe service web-service
+
+Our application is running on the Minikube VM node.  let's first get the IP address of the Minikube VM:
+$ minikube ip
+$ minikube service web-service		We can see the Nginx welcome page, displayed by the webserver application running inside the Pods created. 
+$ minikube service web-service --url
+
+>>Liveness Probe checks on an application's health, and if the health check fails, kubelet restarts the affected container automatically.
+Liveness Probes can be set by defining:
+*Liveness command
+*Liveness HTTP request
+*TCP Liveness probe.
+
+livenessProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/healthy
+      initialDelaySeconds: 15
+      failureThreshold: 1
+      periodSeconds: 5
+$vim probe.yaml
+
+>Liveness HTTP Request
+kubelet sends the HTTP GET request to the /healthz endpoint of the application, on port 8080. If that returns a failure, then the kubelet will restart the affected container; otherwise, it would consider the application to be alive
+livenessProbe:
+       httpGet:
+         path: /healthz
+> TCP Liveness Probe, the kubelet attempts to open the TCP Socket to the container which is running the application.
+
+
+*** KUBERNETES VOLUME MANAGEMENT ***
+Kubernetes uses Volumes,to containers in Pods as storage media.
+Volume is essentially a mount point on the container's file system backed by a storage medium.
+Volume is linked to a Pod and can be shared among the containers of that Pod.
+Volume Type decides the properties of the directory, like size, content, default access modes, etc. Some examples of Volume Types are:
+
+emptyDir: An empty Volume is created for the Pod as soon as it is scheduled on the worker node.
+hostPath: With the hostPath Volume Type, we can share a directory between the host and the Pod.
+gcePersistentDisk: With the gcePersistentDisk Volume Type, we can mount a Google Compute Engine (GCE) persistent disk into a Pod.
+awsElasticBlockStore: With the awsElasticBlockStore Volume Type, we can mount an AWS EBS Volume into a Pod. 
+cephfs: With cephfs, an existing CephFS volume can be mounted into a Pod. When a Pod terminates, the volume is unmounted and the contents of the volume are preserved.
+nfs: With nfs, we can mount an NFS share into a Pod.
+iscsi: With iscsi, we can mount an iSCSI share into a Pod.
+secret: With the secret Volume Type, we can pass sensitive information, such as passwords, to Pods.
+configMap: With configMap objects, we can provide configuration data, or shell commands and arguments into a Pod.
+persistentVolumeClaim: We can attach a PersistentVolume to a Pod using a persistentVolumeClaim. 
+
+>>PersistentVolume (PV) 
+PersistentVolume subsystem, which provides APIs for users and administrators to manage and consume persistent storage. 
+To manage the Volume, it uses the PersistentVolume API resource type, and to consume it, it uses the PersistentVolumeClaim API resource type.
+PersistentVolumes can be dynamically provisioned based on the StorageClass resource. 
+A StorageClass contains predefined provisioners and parameters to create a PersistentVolume
+
+Some of the Volume Types that support managing storage using PersistentVolumes are:
+GCEPersistentDisk
+AWSElasticBlockStore
+AzureFile
+
+>>PersistentVolumeClaim (PVC) 
+PersistentVolumeClaim is a request for storage by a user.
+
+There are four access modes: 
+ReadWriteOnce (read-write by a single node), 
+ReadOnlyMany (read-only by many nodes), 
+ReadWriteMany (read-write by many nodes),  
+ReadWriteOncePod (read-write by a single pod)
+
+After a successful bound, the PersistentVolumeClaim resource can be used by the containers of the Pod.
+
+>>Container Storage Interface (CSI)
+designed to work on different container orchestrators with a variety of storage providers. 
+
+
+*** CONFIGMAPS AND SECRETS ***
+ConfigMaps allow us to decouple the configuration details from the container image.
+ConfigMap can be created with the "kubectl create" command, and we can display its details using the "kubectl get" command.
+
+Create the ConfigMap:
+$ kubectl create configmap my-config \
+  --from-literal=key1=value1 \
+  --from-literal=key2=value2
+
+Display the ConfigMap details for my-config:
+$ kubectl get configmaps my-config -o yaml
+
+With the -o yaml option, we are requesting the kubectl command to produce the output in the YAML format. 
+As we can see, the object has the ConfigMap kind, and it has the key-value pairs inside the data field. 
+The name of ConfigMap and other details are part of the metadata field.
+
+>>create a definition file
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: customer1
+data:
+  TEXT1: Customer1_Company
+  TEXT2: Welcomes You
+  COMPANY: Customer1 Company Technology Pct. Ltd.
+
+where we specify the kind, metadata, and data fields, targeting the v1 endpoint of the API server.
+name the file with the definition above as customer1-configmap.yaml
+$ kubectl create -f customer1-configmap.yaml
+
+>>create a file permission-reset.properties with the following configuration data:
+
+permission=read-only
+allowed="true"
+resetCount=3
+
+$ kubectl create configmap permission-config \
+  --from-file=<path/to/>permission-reset.properties
+
+we can retrieve the key-value data of an entire ConfigMap or the values of specific ConfigMap keys as environment variables.
+We can mount a vol-config-map ConfigMap as a Volume inside a Pod.For each key in the ConfigMap, a file gets created in the mount path
+
+>>Secrets
+With Secrets, we can share sensitive information like passwords, tokens, or keys in the form of key-value pairs, similar to ConfigMaps
+Secret data is stored as plain text inside etcd
+
+create a Secret
+$ kubectl create secret generic my-password \
+  --from-literal=password=mysqlpassword
+get and describe commands do not reveal the content of the Secret. The type is listed as Opaque.
+$ kubectl get secret my-password
+$ kubectl describe secret my-password
+
+We can create a Secret manually from a YAML definition manifest. The example manifest below is named mypass.yaml.
+There are two types of maps for sensitive information inside a Secret: 
+data and stringData.
+
+create the base64 encoding of our password:
+$ echo mysqlpassword | base64
+$ echo "bXlzcWxwYXNzd29yZAo=" | base64 --decode
+$ kubectl create -f mypass.yaml
+
+encode the sensitive data and then we write the encoded data to a text file:
+$ echo mysqlpassword | base64
+$ echo -n 'bXlzcWxwYXNzd29yZAo=' > password.txt		create the Secret from the password.txt
+$ kubectl create secret generic my-file-password \
+  --from-file=password.txt
+$ kubectl get secret my-file-password
+
+
+*** INGRESS ***
+ Ingress API resource, offering a unified method of managing access to our applications from the external world.
+Ingress, users do not connect directly to a Service. 
+Users reach the Ingress endpoint, and, from there, the request is forwarded to the desired Service.
+
+Ingress configures a Layer 7 HTTP/HTTPS load balancer for Services and provides the following:
+TLS (Transport Layer Security)
+Name-based virtual hosting
+Fanout routing
+Loadbalancing
+Custom rules.
+
+$ minikube addons enable ingress 
+$ kubectl create -f virtual-host-ingress.yaml		if we create a virtual-host-ingress.yaml file
+$ sudo vim /etc/hosts
+
+
+*** ADVANCED TOPICS ***
+>> Annotations 
+we can attach arbitrary non-identifying metadata to any objects, in a key-value format
+Unlike Labels, annotations are not used to identify and select objects. Annotations can be used to:
+
+Store build/release IDs, PR numbers, git branch, etc.
+Phone/pager numbers of people responsible, or directory entries specifying where such information can be found.
+Pointers to logging, monitoring, analytics, audit repositories, debugging tools, etc.
+Ingress controller information.
+Deployment state and revision information.
+
+>> ResourceQuota
+administrators can use the ResourceQuota API resource, which provides constraints that limit aggregate resource consumption per Namespace.
+
+We can set the following types of quotas per Namespace:
+Compute Resource Quota: We can limit the total sum of compute resources (CPU, memory, etc.) that can be requested in a given Namespace.
+Storage Resource Quota: We can limit the total sum of storage resources (PersistentVolumeClaims, requests.storage, etc.) that can be requested.
+Object Count Quota: We can restrict the number of objects of a given type (pods, ConfigMaps, PersistentVolumeClaims, ReplicationControllers, Services, Secrets, etc.).
+
+>> autoscalers 
+available in Kubernetes which can be implemented individually or combined for a more robust autoscaling solution
+Horizontal Pod Autoscaler (HPA): HPA is an algorithm-based controller API resource which automatically adjusts the number of replicas in a ReplicaSet, Deployment or Replication Controller based on CPU utilization.
+Vertical Pod Autoscaler (VPA): VPA automatically sets Container resource requirements (CPU and memory) in a Pod and dynamically adjusts them in runtime, based on historical utilization data, current resource availability and real-time events.
+Cluster Autoscaler: Cluster Autoscaler automatically re-sizes the Kubernetes cluster when there are insufficient resources available for new Pods expecting to be scheduled or when there are underutilized nodes in the cluster.
+
+>>Job
+Job creates one or more Pods to perform a given task
+
+parallelism - to set the number of pods allowed to run in parallel;
+completions - to set the number of expected completions;
+activeDeadlineSeconds - to set the duration of the Job;
+backoffLimit - to set the number of retries before Job is marked as failed;
+ttlSecondsAfterFinished - to delay the cleanup of the finished Jobs.
+
+CronJobs, where a new Job object is created about once per each execution cycle.
+startingDeadlineSeconds - to set the deadline to start a Job if scheduled time was missed;
+concurrencyPolicy - to allow or forbid concurrent Jobs or to replace old Jobs with new ones. 
+
+>>StatefulSet 
+StatefulSet controller is used for stateful applications which require a unique identity, such as name, network identifications, or strict ordering. 
+For example, MySQL cluster, etcd cluster.
+
+>>Kubernetes Cluster Federation 
+Kubernetes Cluster Federation we can manage multiple Kubernetes clusters from a single control plane. 
+This allows us to perform Deployments across regions, access them using a global DNS record, and achieve High Availability. 
+
+>>Security Contexts
+Security Contexts allow us to set Discretionary Access Control for object access permissions, privileged running, capabilities, security labels, etc.
+Pod Security Admission: In order to apply security settings to multiple Pods and Containers cluster-wide, we can use the Pod Security Admission, a built-in admission controller for Pod Security that is enabled by default in the API Server.
+
+>> Network Policies
+Network Policies are sets of rules which define how Pods are allowed to talk to other Pods and resources inside and outside the cluster.
+Network Policies are very similar to typical Firewalls
+The Network Policy API resource specifies podSelectors, Ingress and/or Egress policyTypes, and rules based on source and destination ipBlocks and ports.
+
+>>Monitoring, Logging, and Troubleshooting
+In Kubernetes, we have to collect resource usage data by Pods, Services, nodes, etc., to understand the overall resource consumption and to make decisions for scaling a given application. 
+Two popular Kubernetes monitoring solutions are the Kubernetes Metrics Server and Prometheus. 
+
+Metrics Server 
+Metrics Server is a cluster-wide aggregator of resource usage data - a relatively new feature in Kubernetes.
+Prometheus
+Prometheus, now part of CNCF (Cloud Native Computing Foundation), can also be used to scrape the resource usage from different Kubernetes components and objects. Using its client libraries, we can also instrument the code of our application. 
+
+>Another important aspect for troubleshooting and debugging is logging
+ third party tools are required to centralize and aggregate cluster logs. A popular method to collect logs is using Elasticsearch together with Fluentd
+
+$ kubectl logs pod-name
+$ kubectl logs pod-name -c container-name
+$ kubectl logs pod-name -c container-name -p
+the logs of the very last failed container (using the -p or --previous flags). The logs can be displayed for a single container pod or a specific container of a multi-container pod (using the -c flag)
+
+$ kubectl exec pod-name -- ls -la /
+$ kubectl exec pod-name -c container-name -- env
+$ kubectl exec pod-name -c container-name -it -- /bin/sh
+ interact with the running container from the terminal (using the -it flag)
+
+$ kubectl exec pod-name -- ls -la /
+$ kubectl exec pod-name -c container-name -- env
+$ kubectl exec pod-name -c container-name -it -- /bin/sh
+
+$ kubectl get events
+$ kubectl describe pod pod-name
+
+>>helms
+Helm is a package manager (analogous to yum and apt for Linux) for Kubernetes, which can install/update/delete those Charts in the Kubernetes cluster.
+Helm is a CLI client that may run side-by-side with kubectl on our workstation, that also uses kubeconfig to securely communicate with the Kubernetes API server. 
+The helm client queries the Chart repositories for Charts based on search parameters, downloads a desired Chart, and then it requests the API server to deploy in the cluster the resources defined in the Chart. 
+
+>>service mesh
+Service Mesh is a third party solution alternative to the Kubernetes native application connectivity and exposure achieved with Services paired with Ingress Controllers.
+A Service Mesh is an implementation that relies on a proxy component part of the Data Plane, which is then managed through a Control Plane
+
+>>Application Deployment Strategies
+
+>Canary strategy
+Canary strategy runs two application releases simultaneously managed by two independent Deployment controllers, both exposed by the same Service.
+Deployment is exposed to by separately scaling up or down the two Deployment controllers, thus increasing or decreasing the number of their replicas receiving traffic. 
+
+>Blue/Green strategy
+Blue/Green strategy runs the same application release or two releases of the application on two isolated environments, but only one of the two environments is actively receiving traffic, while the second environment is idle, or may undergo rigorous testing prior to shifting traffic to it. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
